@@ -62,19 +62,21 @@ public class Server {
             String[] requestParts = request.split(" ");
             String method = requestParts[0];
             String path = requestParts[1];
-            logger.info(String.format("Request: %s %s %s", method, path, requestBody.toString()));
+            logger.info(String.format("Request: %s %s", method, path));
+            Map<String, String> body = parseJsonString(requestBody.toString());
+            logger.info("Request body: " + body.toString());;
 
 
             String response;
-            Map<String, String> body = new HashMap<>();
+            Map<String, String> responseBody = new HashMap<>();
             switch (method) {
                 case "POST":
-                    body.put("message", "success");
-                    response = createResponse(200, "OK", stringifyJson(body));
+                    responseBody.put("message", "success");
+                    response = createResponse(200, "OK", stringifyJson(responseBody));
                     break;
                 default:
-                    body.put("errorMessage", "Invalid request method");
-                    response = createResponse(400, "Bad Request", stringifyJson(body));
+                    responseBody.put("errorMessage", "Invalid request method");
+                    response = createResponse(400, "Bad Request", stringifyJson(responseBody));
                     break;
             }
 
@@ -123,5 +125,21 @@ public class Server {
         }
         sb.append("}");
         return sb.toString();
+    }
+
+    private static Map<String, String> parseJsonString(String jsonString) {
+        jsonString = jsonString.trim();
+        jsonString = jsonString.substring(1, jsonString.length() - 1).trim();
+
+        Map<String, String> result = new HashMap<>();
+        String[] items = jsonString.split(",");
+        for (String item : items) {
+            String[] keyValue = item.split(":", 2);
+            String key = keyValue[0].trim().replaceAll("^\"|\"$", "");
+            String value = keyValue[1].trim().replaceAll("^\"|\"$", "");
+            result.put(key, value);
+        }
+
+        return result;
     }
 }
