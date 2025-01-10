@@ -10,6 +10,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
@@ -45,14 +47,28 @@ public class Server {
                 line = bufferedReader.readLine();
                 request = request + line;
             }
-            logger.info(String.format("Request: %s", request));
+            
+            String[] requestParts = request.split(" ");
+            String method = requestParts[0];
+            String path = requestParts[1];
+            logger.info(String.format("Request: %s %s", method, path));
 
-            String response = "HTTP/1.1 200 OK\n" +
-                    "Content-Type: application/json\n" +
-                    "\n" +
-                    "{\"message\": \"Hello World\"}";
+
+            String response;
+            Map<String, String> body = new HashMap<>();
+            switch (method) {
+                case "POST":
+                    body.put("message", "success");
+                    response = createResponse(200, "OK", stringifyJson(body));
+                    break;
+                default:
+                    body.put("errorMessage", "Invalid request method");
+                    response = createResponse(400, "Bad Request", stringifyJson(body));
+                    break;
+            }
+
             outputStreamWriter.write(response);
-
+            outputStreamWriter.flush();
         } catch (IOException e) {
             logger.severe(String.format("Unable to complete request: %s", e.getMessage()));
         } finally {
@@ -69,5 +85,32 @@ public class Server {
         public static int MAX_POOL_SIZE = 10;
         public static long KEEP_ALIVE_TIME = 300;
         public static int QUEUE_SIZE = 10;
+    }
+
+    private static String createResponse(int statusCode, String message, String body) {
+        return "HTTP/1.1 " + statusCode + " " + message + "\n" + 
+        "Content-Type: application/json\n" + 
+        "\n" + body;
+    }
+
+    private static String stringifyJson(Map<String, String> object) {
+        if (object == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        boolean isFirstItem = true;
+        for (Map.Entry<String, String> entry : object.entrySet()) {
+            if (!isFirstItem) {
+                sb.append(",");
+            }
+            sb.append("\"" + entry.getKey() + "\"");
+            sb.append(": ");
+            sb.append("\"" + entry.getValue() + "\"");
+            isFirstItem = false;
+        }
+        sb.append("}");
+        return sb.toString();
     }
 }
