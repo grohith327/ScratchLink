@@ -43,15 +43,26 @@ public class Server {
 
             String line = bufferedReader.readLine();
             String request = line;
+            int contentLength = 0;
             while (line != null && !line.isEmpty()) {
                 line = bufferedReader.readLine();
                 request = request + line;
+                if (line.startsWith("Content-Length")) {
+                    contentLength = Integer.parseInt(line.split(":")[1].trim());
+                }
+            }
+
+            StringBuilder requestBody = new StringBuilder();
+            if (contentLength > 0) {
+                char[] bodyChars = new char[contentLength];
+                bufferedReader.read(bodyChars, 0, contentLength);
+                requestBody.append(bodyChars);
             }
             
             String[] requestParts = request.split(" ");
             String method = requestParts[0];
             String path = requestParts[1];
-            logger.info(String.format("Request: %s %s", method, path));
+            logger.info(String.format("Request: %s %s %s", method, path, requestBody.toString()));
 
 
             String response;
