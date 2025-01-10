@@ -9,12 +9,15 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
+    private static final Encoder encoder = new Encoder();
+    private static final AtomicLong counter = new AtomicLong(0);
 
     public static void main(String[] args) {
         int port = 8080;
@@ -51,31 +54,42 @@ public class Server {
                     contentLength = Integer.parseInt(line.split(":")[1].trim());
                 }
             }
-
-            StringBuilder requestBody = new StringBuilder();
-            if (contentLength > 0) {
-                char[] bodyChars = new char[contentLength];
-                bufferedReader.read(bodyChars, 0, contentLength);
-                requestBody.append(bodyChars);
-            }
             
             String[] requestParts = request.split(" ");
             String method = requestParts[0];
             String path = requestParts[1];
             logger.info(String.format("Request: %s %s", method, path));
-            Map<String, String> body = parseJsonString(requestBody.toString());
-            logger.info("Request body: " + body.toString());;
-
 
             String response;
             Map<String, String> responseBody = new HashMap<>();
             switch (method) {
                 case "POST":
-                    responseBody.put("message", "success");
-                    response = createResponse(200, "OK", stringifyJson(responseBody));
-                    break;
+                    StringBuilder requestBody = new StringBuilder();
+                    if (contentLength > 0) {
+                        char[] bodyChars = new char[contentLength];
+                        bufferedReader.read(bodyChars, 0, contentLength);
+                        requestBody.append(bodyChars);
+                    }
+                    Map<String, String> body = parseJsonString(requestBody.toString());
+                    logger.info("Request body: " + body.toString());;
+        
+
+                    if (path.equals("/shorten") && body.containsKey("url")) {
+                        String urlPath = body.get("url");
+                        if (urlPath == null || urlPath.trim().equals("")) {
+                            response = createResponse(400, "Invalid url", "");
+                            break;
+                        }
+
+                        // TODO: Perform a validation if URL is already shortened before increementing
+                        long counterValue = counter.incrementAndGet();
+                        String shortenedUrl = encoder.encode(counterValue);
+                        responseBody.put("shortedUrl", shortenedUrl);
+                        response = createResponse(200, "OK", stringifyJson(responseBody));
+                        break;
+                    }
                 default:
-                    responseBody.put("errorMessage", "Invalid request method");
+                    responseBody.put("errorMessage", "Invalid request");
                     response = createResponse(400, "Bad Request", stringifyJson(responseBody));
                     break;
             }
