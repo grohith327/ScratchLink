@@ -19,6 +19,7 @@ public class Server {
     private static final Encoder encoder = new Encoder();
     private static final NotADataBase nDb = new NotADataBase();
     private static final AtomicLong counter = new AtomicLong(0);
+    private static volatile boolean isServerRunning = true; 
 
     public static void main(String[] args) {
         int port = 8080;
@@ -29,7 +30,19 @@ public class Server {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             logger.info(String.format("Listening to requests from port %d", port));
 
-            while (true) {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                logger.info("Shutting down server");
+                isServerRunning = false;
+
+                try {
+                    serverSocket.close();
+                } catch (IOException e) {
+                    logger.severe("Encountered error while closing socket: " + e.getMessage());
+                }
+                logger.info("Successfully shutdown server");
+            }));
+
+            while (isServerRunning) {
                 Socket clientSocket = serverSocket.accept();
                 logger.info(String.format("Client InetAddress: %s", clientSocket.getInetAddress()));
 
