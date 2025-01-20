@@ -10,11 +10,11 @@ public class BTree implements Serializable {
         rootNode = null;
     }
 
-    public Optional<String> search(int key) {
+    public Optional<String> search(String key) {
         return rootNode == null ? Optional.empty() : rootNode.search(key);
     }
 
-    public void insert(int key, String path) {
+    public void insert(String key, String path) {
         Index index = new Index(key, path);
         if (rootNode == null) {
             rootNode = new BTreeNode(degree, true);
@@ -26,7 +26,7 @@ public class BTree implements Serializable {
             node.splitNode(0, rootNode);
 
             int i = 0;
-            if (node.keys[i].key < key ){
+            if (key.compareTo(node.keys[i].key) > 0 ){
                 i++;
             }
             node.childNodes[i].insertToNode(index);
@@ -37,10 +37,10 @@ public class BTree implements Serializable {
     }
 
     public class Index {
-        private int key;
+        private String key;
         private String path;
 
-        public Index(int key, String path) {
+        public Index(String key, String path) {
             this.key = key;
             this.path = path;
         }
@@ -62,9 +62,9 @@ public class BTree implements Serializable {
             this.keySize = 0;
         }
 
-        public Optional<String> search(int key) {
+        public Optional<String> search(String key) {
             int i = 0;
-            while (i < this.keySize && key > keys[i].key) {
+            while (i < this.keySize && key.compareTo(keys[i].key) > 0) {
                 i++;
             }
 
@@ -82,7 +82,7 @@ public class BTree implements Serializable {
         public void insertToNode(Index index) {
             int i = this.keySize - 1;
             if (this.isLeafNode) {
-                while (i >=0 && index.key < this.keys[i].key) {
+                while (i >=0 && this.keys[i].key.compareTo(index.key) > 0) {
                     this.keys[i+1] = this.keys[i];
                     i--;
                 }
@@ -90,18 +90,18 @@ public class BTree implements Serializable {
                 this.keys[i + 1] = index;
                 this.keySize++; 
             } else {
-                while(i >= 0 && index.key < this.keys[i].key) {
+                while(i >= 0 && this.keys[i].key.compareTo(index.key) > 0) {
                     i--;
                 }
 
-                if (this.childNodes[i].keySize == 2 * degree - 1) {
+                if (this.childNodes[i+1].keySize == 2 * degree - 1) {
                     splitNode(i+1, this.childNodes[i+1]);
-                    if (this.keys[i+1].key < index.key) {
+                    if (index.key.compareTo(this.keys[i+1].key) > 0) {
                         i++;
                     }
                 }
 
-                this.childNodes[i].insertToNode(index);
+                this.childNodes[i+1].insertToNode(index);
             }
         }
 
