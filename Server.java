@@ -17,6 +17,7 @@ import java.util.Map;
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private static final Encoder encoder = new Encoder();
+    private static final NotADataBase nDb = new NotADataBase();
     private static final AtomicLong counter = new AtomicLong(0);
 
     public static void main(String[] args) {
@@ -81,13 +82,29 @@ public class Server {
                             break;
                         }
 
-                        // TODO: Perform a validation if URL is already shortened before increementing
-                        long counterValue = counter.incrementAndGet();
-                        String shortenedUrl = encoder.encode(counterValue);
-                        responseBody.put("shortedUrl", shortenedUrl);
-                        response = createResponse(200, "OK", stringifyJson(responseBody));
+                        try {
+                            long counterValue = counter.incrementAndGet();
+                            String shortenedUrl = encoder.encode(counterValue);
+                            nDb.write(shortenedUrl, urlPath);
+                            responseBody.put("shortedUrl", shortenedUrl);
+                            response = createResponse(200, "OK", stringifyJson(responseBody));
+                        } catch (IOException e) {
+                            response = createResponse(500, "Failed to persist url", "");
+                        }
                         break;
                     }
+                case "GET":
+                    String url = path.split("/")[1];
+                    String result = nDb.query(url);
+                    if (result == null) {
+                        response = createResponse(400, "Invalid URL", "");
+                        break;
+                    }
+
+                    logger.info("Retrieved result is NOT null: " + result);
+                    responseBody.put("result", result);
+                    response = createResponse(200, "OK", stringifyJson(responseBody));
+                    break;
                 default:
                     responseBody.put("errorMessage", "Invalid request");
                     response = createResponse(400, "Bad Request", stringifyJson(responseBody));
@@ -110,13 +127,15 @@ public class Server {
     private final class Constants {
         public static int CORE_POOL_SIZE = 10;
         public static int MAX_POOL_SIZE = 10;
-        public static long KEEP_ALIVE_TIME = 300;
+        public static long KEEP_ALIVE_TIME = 1000;
         public static int QUEUE_SIZE = 10;
     }
 
     private static String createResponse(int statusCode, String message, String body) {
+        int contentLength = body.getBytes(StandardCharsets.UTF_8).length;
         return "HTTP/1.1 " + statusCode + " " + message + "\n" + 
         "Content-Type: application/json\n" + 
+        "Content-Length: " + contentLength + "\n" +
         "\n" + body;
     }
 

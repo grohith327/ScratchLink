@@ -68,7 +68,7 @@ public class BTree implements Serializable {
                 i++;
             }
 
-            if (i < this.keySize && key == this.keys[i].key) {
+            if (i < this.keySize && key.equals(this.keys[i].key)) {
                 return Optional.of(this.keys[i].path);
             }
 
