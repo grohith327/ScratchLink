@@ -102,8 +102,7 @@ public class Server {
                     }
 
                     logger.info("Retrieved result is NOT null: " + result);
-                    responseBody.put("result", result);
-                    response = createResponse(200, "OK", stringifyJson(responseBody));
+                    response = createRedirectResponse(result);
                     break;
                 default:
                     responseBody.put("errorMessage", "Invalid request");
@@ -137,6 +136,16 @@ public class Server {
         "Content-Type: application/json\n" + 
         "Content-Length: " + contentLength + "\n" +
         "\n" + body;
+    }
+
+    private static String createRedirectResponse(String newUrl) {
+        if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
+            newUrl = "https://" + newUrl;
+        }
+        return "HTTP/1.1 301 Permanently Moved\n" +
+               "Location: " + newUrl + "\n" +
+               "Content-Length: 0\n" +
+               "\n";
     }
 
     private static String stringifyJson(Map<String, String> object) {
