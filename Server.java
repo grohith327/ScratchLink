@@ -99,7 +99,7 @@ public class Server {
                             long counterValue = counter.incrementAndGet();
                             String shortenedUrl = encoder.encode(counterValue);
                             nDb.write(shortenedUrl, urlPath);
-                            responseBody.put("shortedUrl", shortenedUrl);
+                            responseBody.put("shortenedUrl", shortenedUrl);
                             response = createResponse(200, "OK", stringifyJson(responseBody));
                         } catch (IOException e) {
                             response = createResponse(500, "Failed to persist url", "");
@@ -116,6 +116,9 @@ public class Server {
 
                     logger.info("Retrieved result is NOT null: " + result);
                     response = createRedirectResponse(result);
+                    break;
+                case "OPTIONS":
+                    response = createResponse(204, "No Content", "");
                     break;
                 default:
                     responseBody.put("errorMessage", "Invalid request");
@@ -146,7 +149,10 @@ public class Server {
     private static String createResponse(int statusCode, String message, String body) {
         int contentLength = body.getBytes(StandardCharsets.UTF_8).length;
         return "HTTP/1.1 " + statusCode + " " + message + "\n" + 
-        "Content-Type: application/json\n" + 
+        "Content-Type: application/json\n" +
+        "Access-Control-Allow-Origin: *\n" + 
+        "Acess-Control-Allow-Methods: GET, POST, OPTIONS\n" +
+        "Access-Control-Allow-Headers: Content-Type\n" +
         "Content-Length: " + contentLength + "\n" +
         "\n" + body;
     }
@@ -157,8 +163,8 @@ public class Server {
         }
         return "HTTP/1.1 301 Permanently Moved\n" +
                "Location: " + newUrl + "\n" +
-               "Content-Length: 0\n" +
-               "\n";
+               "Access-Control-Allow-Origin: *\n" + 
+               "Content-Length: 0\n";
     }
 
     private static String stringifyJson(Map<String, String> object) {
