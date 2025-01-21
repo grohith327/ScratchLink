@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScratchLink</title>
+</head>
+
+<body>
+    <h1>ScratchLink - Generate a tiny url</h1>
+    <form id="tinyUrl"></form>
+    <label for="url">Enter URL:</label>
+    <input type="text" id="url" name="url" required>
+    <button type="button" id="submitButton">Generate</button>
+    </form>
+
+    <script>
+        document.getElementById("submitButton").addEventListener("click", async () => {
+            const url = document.getElementById("url").value;
+            try {
+                const response = await fetch('http://localhost:8080/shorten', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(result);
+                    document.getElementById("tinyUrl").remove();
+                    const p = document.createElement("p");
+                    p.textContent = "Shortened URL: ";
+                    const a = document.createElement("a");
+                    a.target = "_blank";
+                    a.href = `http://localhost:8080/${result.shortenedUrl}`;
+                    a.textContent = `http://localhost:8080/${result.shortenedUrl}`;
+                    p.appendChild(a);
+                    document.body.appendChild(p);
+                } else {
+                    alert("Failed to shorten URL: " + response.statusText);
+                }
+            } catch (error) {
+                console.error("Failed to shorten url", error);
+                alert("Failed to shorten URL")
+            }
+        });
+    </script>
+</body>
+
+</html>
